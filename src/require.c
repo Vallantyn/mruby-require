@@ -1,7 +1,50 @@
+#if !(defined(_WIN32) || defined(_WIN64))
 #include <err.h>
+#endif
 #include <fcntl.h>
 #include <setjmp.h>
+#ifdef _WIN32
+// #include <stdlib.h>
+#include <io.h>
+// // #include <getopt.h>
+#include <process.h>
+#define getpid _getpid
+// #include <direct.h>
+// #define srandom srand
+// #define random rand
+#define R_OK 4
+#define W_OK 2
+#define X_OK 1
+#define F_OK 0
+#define access    _access
+#define open      _open
+#define fdopen    _fdopen
+#define unmask    _unmask
+// #define dup2      _dup2
+// #define execve    _execve
+// #define ftruncate _chsize
+// #define unlink    _unlink
+// #define fileno    _fileno
+// #define getcwd    _getcwd
+// #define chdir    _chdir
+// #define isatty    _isatty
+// #define lseek    _lseek
+// #define ssize_t int
+// #define STDIN_FILENO  0
+// #define STDOUT_FILENO 1
+// #define STDERR_FILENO 2
+typedef int mode_t;
+// typedef __int8  int8_t;
+// typedef __int16 int16_t;
+// typedef __int32 int32_t;
+// typedef __int64 int64_t;
+// typedef unsigned __int8  uint8_t;
+// typedef unsigned __int16 uint16_t;
+// typedef unsigned __int32 uint32_t;
+// typedef unsigned __int64 uint64_t;
+#else
 #include <unistd.h>
+#endif
 
 #include "mruby.h"
 #include "mruby/compile.h"
@@ -20,6 +63,24 @@
 #if MRUBY_RELEASE_NO < 10000
 mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
 #define mrb_yield_with_class mrb_yield_internal
+#endif
+
+#if defined(_WIN32) || defined(_WIN64)
+  #include <windows.h>
+  int mkstemp(char *template)
+  {
+    DWORD pathSize;
+    char pathBuffer[1000];
+    char tempFilename[MAX_PATH];
+    UINT uniqueNum;
+    pathSize = GetTempPath(1000, pathBuffer);
+    if (pathSize < 1000) { pathBuffer[pathSize] = 0; }
+    else                 { pathBuffer[0] = 0; }
+    uniqueNum = GetTempFileName(pathBuffer, template, 0, tempFilename);
+    if (uniqueNum == 0) return -1;
+    strncpy(template, tempFilename, MAX_PATH);
+    return open(tempFilename, _O_RDWR|_O_BINARY);
+  }
 #endif
 
 static void
@@ -84,7 +145,11 @@ static mrb_value
 mrb_require_load_rb_str(mrb_state *mrb, mrb_value self)
 {
   char *path_ptr = NULL;
+#if defined(_WIN32) || defined(_WIN64)
+  char tmpname[MAX_PATH] = "tmp.XXXXXXXX";
+#else
   char tmpname[] = "tmp.XXXXXXXX";
+#endif
   mode_t mask;
   FILE *tmpfp = NULL;
   int fd = -1, ret;
@@ -104,8 +169,9 @@ mrb_require_load_rb_str(mrb_state *mrb, mrb_value self)
   }
   umask(mask);
 
-  tmpfp = fopen(tmpname, "w+");
+  tmpfp = fdopen(fd, "r+");
   if (tmpfp == NULL) {
+    close(fd);
     mrb_sys_fail(mrb, "can't open temporay file at mrb_require_load_rb_str");
   }
 
