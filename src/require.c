@@ -73,7 +73,7 @@ eval_load_irep(mrb_state *mrb, mrb_irep *irep)
 
   replace_stop_with_return(mrb, irep);
   proc = mrb_proc_new(mrb, irep);
-  proc->target_class = mrb->object_class;
+  proc->e.target_class = mrb->object_class;
 
   ai = mrb_gc_arena_save(mrb);
   mrb_yield_with_class(mrb, mrb_obj_value(proc), 0, NULL, mrb_top_self(mrb), mrb->object_class);
