@@ -95,9 +95,9 @@ replace_stop_with_return(mrb_state *mrb, mrb_irep *irep)
 }
 
 static int
-compile_rb2mrb(mrb_state *mrb0, const char *code, int code_len, const char *path, FILE* tmpfp)
+compile_rb2mrb(mrb_state *mrb, const char *code, int code_len, const char *path, FILE* tmpfp)
 {
-  mrb_state *mrb = mrb_open();
+  // mrb_state *mrb = mrb_open();
   mrb_value result;
   mrbc_context *c;
   int ret = -1;
@@ -121,7 +121,7 @@ compile_rb2mrb(mrb_state *mrb0, const char *code, int code_len, const char *path
   ret = mrb_dump_irep_binary(mrb, irep, debuginfo, tmpfp);
 
   mrbc_context_free(mrb, c);
-  mrb_close(mrb);
+  // mrb_close(mrb);
 
   return ret;
 }
